@@ -89,19 +89,11 @@ python main.py rmsd-pdb "PDB1" "PDB2" --cadena X --ventana N
 
 ## Ejemplos de Uso
 
-### Análisis RMSD entre variantes de hemoglobina
-
 ```bash
-python main.py rmsd-local 1HHO 2HHB --cadena A --ventana 5
-```
-
-### Búsqueda completa de una proteína
-
-```bash
-# Buscar información
+# Buscar Proteina por Accession
 python main.py buscar P01308
 
-# Buscar información
+# Buscar información por Texto
 python main.py buscar "albumin human"
 
 # Descargar features
