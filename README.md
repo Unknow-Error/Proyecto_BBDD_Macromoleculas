@@ -15,7 +15,7 @@ Consiste en una aplicación de consola (terminal de comandos) que permite buscar
 
 ```bash
 # Clonar el repositorio
-git clone <url-del-repositorio>
+git clone <https://github.com/Javyne/Proyecto_BBDD_Macromoleculas.git>
 cd protein_cli
 
 # Crear entorno virtual (recomendado)
@@ -87,23 +87,31 @@ python main.py rmsd-pdb "PDB1" "PDB2" --ventana N
 python main.py rmsd-pdb "PDB1" "PDB2" --cadena X --ventana N
 ```
 
-## Estructura del Proyecto
+## Ejemplos de Uso
+
+### Análisis RMSD entre variantes de hemoglobina
 
 ```bash
-protein_cli/
-├── main.py                 # Punto de entrada principal
-├── requirements.txt        # Dependencias del proyecto
-├── README.md              # Este archivo
-├── data/                  # Módulo para APIs
-│   ├── __init__.py
-│   ├── fetch_ncbi.py      # Funciones para NCBI
-│   └── fetch_uniprot.py   # Funciones para UniProt
-└── utils/                 # Utilidades
-    ├── __init__.py
-    ├── prote_search.py    # Lógica principal de búsqueda de proteínas
-    ├── pdb_search.py      # Lógica para búsqueda de PDB (con pandas)
-    ├── features_search.py # Lógica para búsqueda y descarga de features
-    └── rmsd_analysis.py   # Análisis RMSD local entre estructuras PDB
+python main.py rmsd-local 1HHO 2HHB --cadena A --ventana 5
+```
+
+### Búsqueda completa de una proteína
+
+```bash
+# Buscar información
+python main.py buscar P01308
+
+# Buscar información
+python main.py buscar "albumin human"
+
+# Descargar features
+python main.py features P01308 --formato json
+
+# Buscar estructuras PDB
+python main.py buscar-pdb P01308
+
+# Analizar RMSD entre dos estructuras encontradas
+python main.py rmsd-pdb 1HHO 2HHB 
 ```
 
 ## Funcionalidades Detalladas
@@ -137,6 +145,25 @@ Soporte para múltiples formatos de salida:
 - **XML**: Formato extensible
 - **GFF**: Formato genómico
 
+## Estructura del Proyecto
+
+```bash
+protein_cli/
+├── main.py                 # Punto de entrada principal
+├── requirements.txt        # Dependencias del proyecto
+├── README.md              # Este archivo
+├── data/                  # Módulo para APIs
+│   ├── __init__.py
+│   ├── fetch_ncbi.py      # Funciones para NCBI
+│   └── fetch_uniprot.py   # Funciones para UniProt
+└── utils/                 # Utilidades
+    ├── __init__.py
+    ├── prote_search.py    # Lógica principal de búsqueda de proteínas
+    ├── pdb_search.py      # Lógica para búsqueda de PDB (con pandas)
+    ├── features_search.py # Lógica para búsqueda y descarga de features
+    └── rmsd_analysis.py   # Análisis RMSD local entre estructuras PDB
+```
+
 ## Dependencias
 
 ```bash
@@ -147,31 +174,4 @@ pandas>=1.3.0         # Manipulación de datos
 matplotlib>=3.5.0     # Generación de gráficos
 numpy>=1.21.0         # Cálculos numéricos
 seaborn>=0.11.0       # Estilos de gráficos
-```
-
-## Ejemplos de Uso
-
-### Análisis RMSD entre variantes de hemoglobina
-
-```bash
-python main.py rmsd-local 1HHO 2HHB --cadena A --ventana 5
-```
-
-### Búsqueda completa de una proteína
-
-```bash
-# Buscar información
-python main.py buscar P01308
-
-# Buscar información
-python main.py buscar "albumin human"
-
-# Descargar features
-python main.py features P01308 --formato json
-
-# Buscar estructuras PDB
-python main.py buscar-pdb P01308
-
-# Analizar RMSD entre dos estructuras encontradas
-python main.py rmsd-pdb 1HHO 2HHB 
 ```
