@@ -20,9 +20,10 @@ def buscar_acn_ncbi(accession, email="tucorreo@example.com"):
 
         id_list = search_data["esearchresult"]["idlist"]
         if not id_list:
-            return {"error": f"No se encontró el accession '{accession}'"}
+            return {"error": f"No se encontró el accession '{accession}' en NCBI"}
 
         uid = id_list[0]
+        print(f"UID encontrado: {uid}")
 
         # Paso 2: Obtener resumen en JSON
         handle = Entrez.esummary(db="protein", id=uid, retmode="json")
@@ -33,4 +34,5 @@ def buscar_acn_ncbi(accession, email="tucorreo@example.com"):
         return summary_data
 
     except Exception as error:
-        print("Error en la busqueda:", str(error))
+        print(f"Error en la búsqueda de NCBI: {str(error)}")
+        return {"error": f"Error en la búsqueda de NCBI: {str(error)}"}
