@@ -74,17 +74,17 @@ python main.py features P01308 -f xml
 
 ```bash
 # Análisis RMSD local entre dos estructuras PDB
-python main.py rmsd-local "PDB1" "PDB2"
+python main.py rmsd-pdb "PDB1" "PDB2"
 
 # OPCIONALES
 # Especificar cadena
-python main.py rmsd-local "PDB1" "PDB2" --cadena X
+python main.py rmsd-pdb "PDB1" "PDB2" --cadena X
 
 # Cambiar tamaño de ventana (default: 5)
-python main.py rmsd-local "PDB1" "PDB2" --ventana N
+python main.py rmsd-pdb "PDB1" "PDB2" --ventana N
 
 # Combinar opciones
-python main.py rmsd-local "PDB1" "PDB2" --cadena X --ventana N
+python main.py rmsd-pdb "PDB1" "PDB2" --cadena X --ventana N
 ```
 
 ## Estructura del Proyecto
@@ -173,5 +173,5 @@ python main.py features P01308 --formato json
 python main.py buscar-pdb P01308
 
 # Analizar RMSD entre dos estructuras encontradas
-python main.py rmsd-local 1ABC 2DEF --ventana 7
+python main.py rmsd-pdb 1HHO 2HHB 
 ```
