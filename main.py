@@ -1,22 +1,55 @@
-def main():
-    print("=== BUSCADOR DE PROTEÍNAS ===\n")
-    user_input = input("Ingrese un identificador (UniProt o NCBI RefSeq): ").strip()
+import click
 
-    tipo, datos = identify_protein(user_input)
-    print(f"\nTipo detectado: {tipo}")
+from utils import features_search as fs
+from utils import pdb_search as pdb
+from utils import prote_search as ps
+from utils import rmsd_analysis as rmsd
 
-    if not datos:
-        print("No se pudieron obtener datos.")
-        return
 
-    print(f"\nIdentificador UniProt: {datos.get('uniprot_id', '-')}")
-    print(f"Identificador NCBI: {datos.get('ncbi_id', '-')}")
-    print(f"\nFeatures encontradas: {len(datos['features'])}")
-    for f in datos['features'][:10]:  # Mostrar solo las primeras 10
-        print(f"- {f['type']}: {f['description']} ({f['start']} - {f['end']})")
+# CLI para buscar proteínas en bases de datos biológicas
+@click.group()
+def cli():
+    pass
 
-    print(f"\nPDBs asociados ({len(datos['pdb_ids'])}): {', '.join(datos['pdb_ids']) if datos['pdb_ids'] else 'Ninguno'}")
+
+# Busca información de una proteína por su ID
+@cli.command()
+@click.argument("prompt")
+def buscar(prompt):
+    print(ps.buscar(prompt))
+
+
+# Busca estructuras PDB asociadas a un accession de UniProt
+@cli.command()
+@click.argument("accession")
+def buscar_pdb(accession):
+    print(pdb.lista_pdb(accession))
+
+
+# Analiza RMSD local entre dos estructuras PDB
+@cli.command()
+@click.argument("pdb1")
+@click.argument("pdb2")
+@click.option("--cadena", "-c", help="ID de la cadena a analizar (opcional)")
+@click.option(
+    "--ventana", "-w", default=5, help="Tamaño de la ventana deslizante (default: 5)"
+)
+def rmsd_pdb(pdb1, pdb2, cadena, ventana):
+    resultado = rmsd.analizar_rmsd_local(pdb1, pdb2, cadena, ventana)
+    if resultado[0]:
+        print(f"\nAnálisis completado exitosamente!")
+        print(f"Archivo generado: {resultado[0]}")
+
+
+# Descarga features de una proteína por accession de UniProt
+@cli.command()
+@click.argument("accession")
+@click.option(
+    "--formato", "-f", default="json", help="Formato de salida (json, txt, xml, gff)"
+)
+def features(accession, formato):
+    print(fs.descargar_features(accession, formato))
 
 
 if __name__ == "__main__":
-    main()
+    cli()
