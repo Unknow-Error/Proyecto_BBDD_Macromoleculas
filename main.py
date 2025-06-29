@@ -4,7 +4,7 @@ from utils import features_search as fs
 from utils import pdb_search as pdb
 from utils import prote_search as ps
 from utils import rmsd_analysis as rmsd
-
+from utils import pdb_viewer as pdbv
 
 # CLI para buscar proteínas en bases de datos biológicas
 @click.group()
@@ -50,6 +50,13 @@ def rmsd_pdb(pdb1, pdb2, cadena, ventana):
 def features(accession, formato):
     print(fs.descargar_features(accession, formato))
 
+
+# Mostrar la estructura de la proteína según su pdb.
+@cli.command()
+@click.argument("codigopdb")
+def mostrar_PDB(codigopdb):
+    pdbMostrador = pdbv.PDB_Viewer(codigopdb)
+    pdbMostrador.mostrar_pdb_domains_regiones()
 
 if __name__ == "__main__":
     cli()
