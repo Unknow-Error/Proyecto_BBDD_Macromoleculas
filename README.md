@@ -110,11 +110,14 @@ python main.py mostrar-PDB-features "PDB" --feature "Color HEX"(str) inicio(int)
 # Especificar cadena en alineamiento
 python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X
 
-# Cambiar tamaño de ventana en alineamiento (default: 5)
+# Especificar tamaño de ventana (default: 50)
 python main.py mostrar-alineamiento "PDB1" "PDB2" --ventana N
 
+# Cambiar colores (default: blue red)
+python main.py mostrar-alineamiento "PDB1" "PDB2" --colores "col1" "col2"
+
 # Combinar opciones en alineamiento
-python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X --ventana N
+python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X --colores "col1" "col2" --ventana 25
 ```
 
 ## Ejemplos de Uso
@@ -135,11 +138,14 @@ python main.py buscar-pdb P01308
 # Analizar RMSD entre dos estructuras encontradas
 python main.py rmsd-pdb 1HHO 2HHB
 
-# Visualizar una estructura PDB:
-python main.py mostrar-pdb 1HHO
+# Visualizar una estructura PDB (simple sin features):
+python main.py mostrar_PDB_simple 1HHO
+
+# Visualizar una estructura PDB (Con features):
+python main.py mostrar_PDB_features 1HHO
 
 # Visualizar alineamiento entre dos estructuras
-python main.py mostrar-alineamiento 1HHO 2HHB
+python main.py mostrar-alineamiento 1HHO 2HHB --cadena B --colores blue green --ventana 10
 ```
 
 ## Funcionalidades Detalladas
@@ -151,7 +157,8 @@ El comando `rmsd-local` realiza el cálculo de RMSD entre dos PDB:
 1. **Superposición Global**: Alinea las estructuras completas usando átomos CA de aminoácidos estándar
 2. **Ventana Deslizante**: Calcula RMSD en ventanas de tamaño configurable (default: 5 residuos)
 3. **Fórmula Estándar**: RMSD = √(Σ(coord₁ - coord₂)² / n)
-4. **Visualización**: Genera gráficos con estadísticas completas
+4. **Gráficos RMSD**: Genera gráficos con estadísticas completas
+5. **Visualización de estructura**: Genera una instancia y un archivo HTML/CSS para mostrar la estructura 3D de las porteínas interactiva.
 
 **Características:**
 
@@ -159,6 +166,7 @@ El comando `rmsd-local` realiza el cálculo de RMSD entre dos PDB:
 - Filtra solo aminoácidos estándar
 - Gráficos guardados automáticamente en carpeta `graficos/`
 - Soporte para diferentes cadenas y tamaños de ventana
+- Soporte para la visualización de archivos PDB y de estructuras alineadas.
 
 ### Búsqueda de PDB con Pandas
 

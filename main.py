@@ -40,20 +40,6 @@ def rmsd_pdb(pdb1, pdb2, cadena, ventana):
         print(f"\nAnálisis completado exitosamente!")
         print(f"Archivo generado: {resultado[0]}")
 
-# Guardar un alineamiento RMSD local/global entre dos estructuras PDB
-@cli.command()
-@click.argument("pdb1")
-@click.argument("pdb2")
-@click.option("--cadena", "-c", help="ID de la cadena a analizar (opcional)")
-@click.option(
-    "--ventana", "-w", default=5, help="Tamaño de la ventana deslizante (default: 5)"
-)
-def rmsd_ali_save_pdb(pdb1, pdb2, cadena, ventana):
-    resultado = rmsd.guardar_estructura_alineada(pdb1, pdb2, cadena, ventana)
-    if resultado[0]:
-        print(f"\nAnálisis completado exitosamente!")
-
-
 # Descarga features de una proteína por accession de UniProt
 @cli.command()
 @click.argument("accession")
@@ -79,7 +65,7 @@ def mostrar_PDB_simple(codigopdb, cadena):
     "-f",
     nargs=4,
     type=(str, int, int, str),
-    help="Color hex, inicio, fin, nombre. Ej: -f '#FF0000' 10 50 dominio",
+    help="Color, comienzo y fin, y nombre de la feature a añadir. Color hex, inicio, fin, nombre. Ej: -f '#FF0000' 10 50 dominio",
 )
 def mostrar_PDB_features(codigopdb, feature):
     pdbMostrador = pdbv.PDB_Viewer(codigopdb)
@@ -92,10 +78,17 @@ def mostrar_PDB_features(codigopdb, feature):
 @click.option("--cadena", "-c", help="ID de la cadena a analizar (opcional)")
 @click.option(
     "--ventana", "-w", default=5, help="Tamaño de la ventana deslizante (default: 5)"
+)
+@click.option(
+    "--colores",
+    "-col",
+    nargs = 2,
+    type = (str, str),
+    help="Colores de las cadenas alineadas. Color_1 Color_2. Ej: blue green (Opcional)"
 )       
-def mostrar_alineamiento(codigopdb1, codigopdb2, cadena, ventana):
+def mostrar_alineamiento(codigopdb1, codigopdb2, cadena, colores, ventana):
     pdbMostrador = pdbv.PDB_Viewer(codigopdb1)
-    pdbMostrador.mostrar_alineamiento_pdb(codigopdb2, cadena, ventana)
+    pdbMostrador.mostrar_alineamiento_pdb(codigopdb2, cadena, colores, ventana)
 
 if __name__ == "__main__":
     cli()

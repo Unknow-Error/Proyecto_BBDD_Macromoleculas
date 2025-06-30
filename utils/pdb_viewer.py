@@ -192,7 +192,7 @@ class PDB_Viewer:
       titulo = f"Estructura Simple de {self.codigo_pdb}"
     
     html_completo = self.generar_html_completo(
-      titulo, cuerpo, None, None, None
+      titulo, cuerpo, None, None, None, None
     )
     
     # Guardar y abrir
@@ -249,7 +249,7 @@ class PDB_Viewer:
     titulo = f"Estructura Con Features de {self.codigo_pdb}"
     
     html_completo = self.generar_html_completo(
-      titulo, cuerpo, leyenda_dominios, leyenda_regiones, leyenda_feature_personal
+      titulo, cuerpo, leyenda_dominios, leyenda_regiones, leyenda_feature_personal, None
     )
     
     # Guardar y abrir
@@ -260,28 +260,45 @@ class PDB_Viewer:
     abrir_en_navegador(ruta_completa)
     print(f"{html_nombre} guardado en '{ruta_completa}' y abierto exitosamente.")
   
-  def mostrar_alineamiento_pdb(self, otro_codigo_pdb,  cadena_id=None, ventana=5):
+  def mostrar_alineamiento_pdb(self, otro_codigo_pdb,  cadena_id=None, colores=None, ventana=50):
     # Generar el PDB de alineamiento
     
-    ruta_alineamiento = rmsd.guardar_estructura_alineada(self.codigo_pdb, otro_codigo_pdb, cadena_id, ventana)
+    estructura_self = rmsd.cargar_estructura(rmsd.descargar_pdb(self.codigo_pdb))
+    estructura_otro = rmsd.cargar_estructura(rmsd.descargar_pdb(otro_codigo_pdb))
     
-    with open(ruta_alineamiento, 'r') as f:
-        ruta_alineamiento = f.read()
-        
+    alineamiento = rmsd.alinear_estructuras(estructura_self, estructura_otro, cadena_id) 
+    grafico = rmsd.analizar_rmsd_local(self.codigo_pdb, otro_codigo_pdb, cadena_id, ventana)
+    ruta_grafico = grafico[0]
+    
+    estructura_self_str = rmsd.estructura_PDB_a_str(estructura_self, cadena_id)
+    estructura_otro_str = rmsd.estructura_PDB_a_str(estructura_otro, cadena_id)
+    
     # Genera la vista
+    color_ref, color_otro = colores
+    if color_ref is None:
+      color_ref = "blue"
+    if color_otro is None:
+      color_otro = "red"
+      
     view = py3Dmol.view(width=800, height=600)
-    view.addModel(ruta_alineamiento, 'pdb')
-    view.setStyle({'cartoon': {'color': 'spectrum'}})
+    view.addModel(estructura_self_str, "pdb")
+    view.setStyle({'model': 0}, {"cartoon": {"color": f"{color_ref}"}})
+    view.addModel(estructura_otro_str, "pdb")
+    view.setStyle({'model': 1}, {"cartoon": {"color": f"{color_otro}"}})
     view.zoomTo()
 
     html = view._make_html()
     match = re.search(r'<body>(.*?)</body>', html, flags=re.DOTALL)
     cuerpo = match.group(1) if match else html
     
-    nombre_alineamiento = f"Alineamiento {self.codigo_pdb} - {otro_codigo_pdb} - Cadena: {cadena_id} - Ventana: {ventana}"
+    nombre_alineamiento = f"Alineamiento {self.codigo_pdb} - {otro_codigo_pdb} - Cadena: {cadena_id} - RMSD Global: {alineamiento:.2f} Å"
+    
+    leyenda_alineamiento = []
+    leyenda_alineamiento.append((self.codigo_pdb, f"{color_ref}"))
+    leyenda_alineamiento.append((otro_codigo_pdb, f"{color_otro}"))
 
     html_completo = self.generar_html_completo(
-      nombre_alineamiento, cuerpo, None, None, None
+      nombre_alineamiento, cuerpo, None, None, leyenda_alineamiento, ruta_grafico #Porque alineamiento_grafico tiene la ruta, posiciones_values, rmsd_values
     )
     
     # Guardar y abrir
@@ -292,21 +309,34 @@ class PDB_Viewer:
     abrir_en_navegador(ruta_completa)
     print(f"{html_nombre} guardado en '{ruta_completa}' y abierto exitosamente.")
   
-  def generar_html_completo(self, titulo_tipo, cuerpo_contenido, leyenda_dominios, leyenda_regiones, leyenda_otros):
+  def generar_html_completo(self, titulo_tipo, cuerpo_contenido, leyenda_dominios, leyenda_regiones, leyenda_otros, ruta_imagen=None):
     """
     Genera y retorna el HTML completo de la página.
     """
     def construir_seccion(titulo, items):
-        html = f"<section class='legend-section'><h2>{titulo}</h2><ul>"
-        for nota, inicio, fin, color, colorNombre in items:
+      html = f"<section class='legend-section'><h2>{titulo}</h2><ul>"
+      for item in items:
+        try:
+          # Caso: (nota, inicio, fin, color, colorNombre)
+          nota, inicio, fin, color, colorNombre = item
+          html += (
+            f"<li><span class='color-box' style='background:{color};'></span>"
+            f"<strong>{nota} ({inicio}\u2013{fin})</strong>: {colorNombre} ({color})</li>"
+          )
+        except ValueError:
+          try:
+            # Caso: (codigo_pdb, color)
+            codigo_pdb, color = item
             html += (
-                f"<li><span class='color-box' style='background:{color};'></span>"
-                f"<strong>{nota} ({inicio}\u2013{fin})</strong>: {colorNombre} ({color})</li>"
-            )
-        html += '</ul></section>'
-        return html
+              f"<li><span class='color-box' style='background:{color};'></span>"
+              f"<strong>{codigo_pdb}</strong>: {color}</li>"
+              )
+          except Exception as e:
+            html += f"<li>Error procesando item: {item} ({e})</li>"
+      html += '</ul></section>'
+      return html
 
-    leyenda_html = "Sin Leyenda"
+    leyenda_html = ""
     try:
       leyenda_html = construir_seccion('Dominios', leyenda_dominios)
     except Exception as e:
@@ -320,6 +350,13 @@ class PDB_Viewer:
     except Exception as e:
       print(f"No hay regiones: {e}")
     
+    # Imagen opcional
+    imagen_html = ""
+    if ruta_imagen:
+      imagen_html = f"""
+      <div class='card image-container'>
+        <img src="{os.path.basename(ruta_imagen)}" alt="Imagen relacionada" class="responsive-image">
+      </div>"""
 
     # Template completo con estilo más sofisticado
     html = f"""<!DOCTYPE html>
@@ -342,14 +379,16 @@ class PDB_Viewer:
     .container {{ max-width: 1200px; margin: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }}
     h1 {{ margin-bottom: 16px; color: var(--accent); }}
     .card {{ background: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--box-shadow); width: 100%; margin-bottom: 24px; padding: 16px; }}
-    .visualization {{ height: 600px; }}
+    .visualization {{ min-height: 400px; display: flex; justify-content: center;align-items: center; }}
     .legend {{ display: flex; flex-direction: column; gap: 16px; }}
     .legend-section h2 {{ font-size: 1.2em; margin-bottom: 8px; border-bottom: 2px solid var(--accent); padding-bottom: 4px; }}
     .legend-section ul {{ list-style: none; }}
     .legend-section li {{ display: flex; align-items: center; margin-bottom: 6px; }}
     .legend-section .color-box {{ width: 16px; height: 16px; border-radius: 4px; margin-right: 8px; border: 1px solid #ccc; }}
+    .image-container {{ text-align: center; display: flex; justify-content: center;  align-items: center; padding: 16px;}}
+    .responsive-image {{ max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }}
     @media (max-width: 768px) {{
-      .visualization {{ height: 400px; }}
+      .visualization {{ min-height: 300px; display: flex; justify-content: center;align-items: center;}}
       .card {{ padding: 12px; }}
     }}
   </style>
@@ -363,6 +402,7 @@ class PDB_Viewer:
     <div class='card legend'>
       {leyenda_html}
     </div>
+    {imagen_html}
   </div>
 </body>
 </html>"""

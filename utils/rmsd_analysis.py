@@ -1,6 +1,7 @@
 import os
 import tempfile
 import warnings
+import io
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +10,7 @@ import seaborn as sns
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.Polypeptide import is_aa
 from Bio.PDB.Superimposer import Superimposer
-from Bio.PDB import PDBIO
+from Bio.PDB import PDBIO, Select
 
 warnings.filterwarnings("ignore")
 
@@ -288,64 +289,51 @@ def analizar_rmsd_local(pdb1_id, pdb2_id, cadena_id=None, ventana=5):
         print(f"Error: {e}")
         return None, None, None
 
-def guardar_estructura_alineada(pdb1_id, pdb2_id, cadena_id=None, ventana=5):
-    """
-    Descarga dos estructuras PDB, alinea la segunda sobre la primera globalmente (basado en átomos CA),
-    y guarda la segunda estructura ya alineada en formato .pdb.
 
-    Parámetros:
-        pdb1_id (String): ID del primer PDB (referencia)
-        pdb2_id (String): ID del segundo PDB (se alineará sobre el primero)
-        cadena_id (String, opcional): ID de la cadena a usar para la alineación. Si no se especifica, se toma la primera común.
-        ventana (int): tamaño de ventana para cálculo de RMSD local (usado para verificar residuos compatibles)
+# Para alineamiento estructural gráfico => Con alineamiento global.
+# Extraer los C-alfa de la cadena X
+def conseguir_atomos_CA(estructura, cadenaID=None):
+    """Devuelve un diccionario {resid: atom} para los C-alfa de una cadena."""
+    modelo = estructura[0]
+    if cadenaID is None:
+        cadenaID = 'A'
+    cadena = modelo[cadenaID]
+    return {residuo.id: residuo['CA'] for residuo in cadena if 'CA' in residuo}
 
-    Retorna:
-        String: ruta del archivo PDB alineado guardado.
-    """
-    try:
-        # Descargar archivos
-        archivo1 = descargar_pdb(pdb1_id)
-        archivo2 = descargar_pdb(pdb2_id)
+# Alinear estructuras usando Superimposer
+def alinear_estructuras(estructuraReferencia, estructuraOtra, cadenaID, tolerancia=3):
+    ca_ref = conseguir_atomos_CA(estructuraReferencia, cadenaID)
+    ca_otro = conseguir_atomos_CA(estructuraOtra, cadenaID)
 
-        # Cargar estructuras
-        estructura1 = cargar_estructura(archivo1)
-        estructura2 = cargar_estructura(archivo2)
+    # Encontrar residuos comunes -> Para alineamiento con proteinas de diferente tamaño
+    residuos_comunes = set(ca_ref.keys()) & set(ca_otro.keys())
+    
+    if len(residuos_comunes) < tolerancia:
+        raise ValueError("Muy pocos residuos comunes para alinear.")
+    
+    atomos_referencia = [ca_ref[residuo] for residuo in sorted(residuos_comunes)]
+    atomos_comunes = [ca_otro[residuo] for residuo in sorted(residuos_comunes)]
+    
+    if len(atomos_referencia) != len(atomos_comunes):
+        raise ValueError("Las listas de C-Alfa no tienen el mismo largo.")
+    
+    si = Superimposer()
+    si.set_atoms(atomos_referencia, atomos_comunes)
+    si.apply([atom for atom in estructuraOtra.get_atoms()]) # Aplica la transformación sobre todos los átomos
+    return si.rms
 
-        # Obtener cadenas comunes
-        cadenas_comunes = obtener_cadenas_comunes(estructura1, estructura2)
-        if cadena_id is None:
-            cadena_id = cadenas_comunes[0]
-            print(f"Usando cadena {cadena_id} (primera disponible)")
-        elif cadena_id not in cadenas_comunes:
-            raise Exception(
-                f"Cadena {cadena_id} no encontrada. Cadenas disponibles: {cadenas_comunes}"
-            )
+#Convertir estructura Biopython a string PDB para py3Dmol
+class SeleccionarCadena(Select):
+    def __init__(self, cadenaID):
+        self.cadenaID = cadenaID
+    def accept_chain(self, cadena):
+        return cadena.id == self.cadenaID
 
-        # Extraer residuos CA (se usa dentro de calcular_rmsd_local)
-        print("Realizando alineamiento global...")
-        posiciones, rmsd_local = calcular_rmsd_local(
-            estructura1, estructura2, cadena_id, ventana
-        )
-
-        # Guardar estructura alineada (estructura2 fue modificada en el proceso)
-        
-        carpeta = 'estructuras_alineadas'
-        os.makedirs(carpeta, exist_ok=True)
-        nombre_archivo = f"alineado_{pdb2_id}_a_{pdb1_id}_cadena_{cadena_id}.pdb"
-        ruta_completa = os.path.join(carpeta, nombre_archivo)
-
-        io = PDBIO()
-        io.set_structure(estructura2)
-        io.save(ruta_completa)
-
-        print(f"Estructura alineada guardada como: {ruta_completa}")
-
-        # Limpiar archivos temporales
-        os.unlink(archivo1)
-        os.unlink(archivo2)
-
-        return ruta_completa
-
-    except Exception as e:
-        print(f"Error al alinear y guardar estructura: {e}")
-        return None
+def estructura_PDB_a_str(estructura, cadenaID=None):
+    io_pdb = PDBIO()
+    io_pdb.set_structure(estructura)
+    string_io = io.StringIO()
+    if cadenaID is None:
+        cadenaID = 'A'
+    io_pdb.save(string_io, select=SeleccionarCadena(cadenaID))
+    return string_io.getvalue()
