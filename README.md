@@ -167,6 +167,7 @@ El comando `rmsd-local` realiza el cálculo de RMSD entre dos PDB:
 - Gráficos guardados automáticamente en carpeta `graficos/`
 - Soporte para diferentes cadenas y tamaños de ventana
 - Soporte para la visualización de archivos PDB y de estructuras alineadas.
+- Gráficos de estructuras 3D automáticamente guarados en carpeta `graficos/`
 
 ### Búsqueda de PDB con Pandas
 
