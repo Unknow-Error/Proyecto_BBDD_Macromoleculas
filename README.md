@@ -91,19 +91,29 @@ python main.py rmsd-pdb "PDB1" "PDB2" --cadena X --ventana N
 
 ```bash
 # Visualización de una proteína
-python main.py mostrar-pdb "PDB"
+python main.py mostrar-PDB-simple "PDB"
+
+# Mostrar Features
+python main.py mostrar-PDB-features "PDB" 
 
 # Visualización de alineamiento estructural
 python main.py mostrar-alineamiento "PDB1" "PDB2"
 
 # OPCIONALES
-# Especificar cadena
+
+# Mostrar solo una cadena
+python main.py mostrar-PDB-simple "PDB" --cadena X
+
+# Mostrar Features y asignar un feature personalizado
+python main.py mostrar-PDB-features "PDB" --feature "Color HEX"(str) inicio(int) fin(int) "NombreFeature"(str)
+
+# Especificar cadena en alineamiento
 python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X
 
-# Cambiar tamaño de ventana (default: 5)
+# Cambiar tamaño de ventana en alineamiento (default: 5)
 python main.py mostrar-alineamiento "PDB1" "PDB2" --ventana N
 
-# Combinar opciones
+# Combinar opciones en alineamiento
 python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X --ventana N
 ```
 
