@@ -147,69 +147,109 @@ class PDB_Viewer:
     return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
   def mostrar_pdb_domains_regiones(self):
-    """
-    Muestra la estructura proteica y sus dominios según anotaciones de Uniprot.
-    La visualización se guarda en un archivo HTML y se abre en el navegador.
-    """
-    # Visualización 3D de la estructura
+    # Genera la vista
     view = py3Dmol.view(query='pdb:' + self.codigo_pdb)
     view.setStyle({'cartoon': {'color': 'lightgrey'}})
 
-    # Leyendas para los dominios y regiones
-    leyenda_dominios = []
-    leyenda_regiones = []
-
-    # Añadir los dominios a la visualización
+    leyenda_dominios, leyenda_regiones = [], []
+    # Dominios
     if self.dominios:
-        for dominio in self.dominios:
-            color = self.random_color()
-            rango_dominio = list(range(dominio['inicio'], dominio['final'] + 1))
-            view.addStyle({'resi': rango_dominio}, {'cartoon': {'color': color}})
-            leyenda_dominios.append([dominio['note'], dominio['inicio'], dominio['final'], color])
-
-    # Añadir las regiones a la visualización
+      for dominio in self.dominios:
+        color = self.random_color()
+        residuo = list(range(dominio['inicio'], dominio['final']+1))
+        view.addStyle({'resi': residuo}, {'cartoon': {'color': color}})
+        colorNombre = self.nombre_color_masCercano(color)
+        leyenda_dominios.append((dominio['note'], dominio['inicio'], dominio['final'], color, colorNombre))
+        
+    # Regiones
     if self.regiones:
-        for region in self.regiones:
-            color = self.random_color()
-            rango_region = list(range(region['inicio'], region['final'] + 1))
-            view.addStyle({'resi': rango_region}, {'cartoon': {'color': color}})
-            leyenda_regiones.append([region['note'], region['inicio'], region['final'], color])
+      for region in self.regiones:
+        color = self.random_color()
+        residuo = list(range(region['inicio'], region['final']+1))
+        view.addStyle({'resi': residuo}, {'cartoon': {'color': color}})
+        colorNombre = self.nombre_color_masCercano(color)
+        leyenda_regiones.append((region['note'], region['inicio'], region['final'], color, colorNombre))
 
-    # Ajustar el zoom a la estructura
     view.zoomTo()
+    html = view._make_html()
+    match = re.search(r'<body>(.*?)</body>', html, flags=re.DOTALL)
+    cuerpo = match.group(1) if match else html
 
-    # Guardar la visualización en un archivo HTML
-    html_file = f"{self.codigo_pdb}_estructura_pdb.html"
-    view.write_html(html_file)
-
-    # Generar el contenido HTML adicional para la leyenda
-    leyenda_html = "<h2>Leyenda de Dominios y Regiones</h2>"
+    html_completo = self.generar_html_completo(
+      self.codigo_pdb, cuerpo, leyenda_dominios, leyenda_regiones
+    )
     
-    # Leyenda de los dominios
-    leyenda_html += "<h3>Dominios:</h3><ul>"
-    for note, inicio, final, color in leyenda_dominios:
-        color_nombre = self.nombre_color_masCercano(color)
-        leyenda_html += f"<li><b>{note} ({inicio}–{final})</b> → <span style='color:{color};'>{color_nombre} ({color})</span></li>"
-    leyenda_html += "</ul>"
+    # Guardar y abrir
+    html_nombre = f"{self.codigo_pdb}_estructura_pdb.html"
+    with open(html_nombre, 'w', encoding='utf-8') as f:
+      f.write(html_completo)
+    abrir_en_navegador(html_nombre)
+    print(f"{html_nombre} guardado y abierto exitosamente.")
+  
+  def generar_html_completo(self, codigo_pdb, cuerpo_contenido, leyenda_dominios, leyenda_regiones):
+    """
+    Genera y retorna el HTML completo de la página.
+    """
+    def construir_seccion(titulo, items):
+        html = f"<section class='legend-section'><h2>{titulo}</h2><ul>"
+        for nota, inicio, fin, color, colorNombre in items:
+            html += (
+                f"<li><span class='color-box' style='background:{color};'></span>"
+                f"<strong>{nota} ({inicio}\u2013{fin})</strong>: {colorNombre} ({color})</li>"
+            )
+        html += '</ul></section>'
+        return html
 
-    # Leyenda de las regiones
-    leyenda_html += "<h3>Regiones:</h3><ul>"
-    for note, inicio, final, color in leyenda_regiones:
-        color_nombre = self.nombre_color_masCercano(color)
-        leyenda_html += f"<li><b>{note} ({inicio}–{final})</b> → <span style='color:{color};'>{color_nombre} ({color})</span></li>"
-    leyenda_html += "</ul>"
+    leyenda_html = construir_seccion('Dominios', leyenda_dominios)
+    leyenda_html += construir_seccion('Regiones', leyenda_regiones)
 
-    # Escribir la leyenda al archivo HTML generado
-    with open(html_file, "a") as f:
-        f.write(leyenda_html)
-
-    # Abrir el archivo HTML en el navegador (forzando la apertura)
-    # Intentar abrir el archivo HTML en el navegador
-    abrir_en_navegador(html_file)
-    # Imprimir la leyenda en la consola también
-    print(f"El archivo {html_file} se ha guardado y contiene la visualización de la proteína {self.codigo_pdb}")
-
-
+    # Template completo con estilo más sofisticado
+    html = f"""<!DOCTYPE html>
+<html lang='es'>
+<head>
+  <meta charset='utf-8'/>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Estructura de {codigo_pdb}</title>
+  <style>
+    :root {{
+      --bg-color: #f5f5f5;
+      --card-bg: #ffffff;
+      --primary: #333333;
+      --accent: #1e88e5;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }}
+    * {{ box-sizing: border-box; margin:0; padding:0; }}
+    body {{ background: var(--bg-color); color: var(--primary); font-family: 'Segoe UI', Tahoma, sans-serif; }}
+    .container {{ max-width: 1200px; margin: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }}
+    h1 {{ margin-bottom: 16px; color: var(--accent); }}
+    .card {{ background: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--box-shadow); width: 100%; margin-bottom: 24px; padding: 16px; }}
+    .visualization {{ height: 600px; }}
+    .legend {{ display: flex; flex-direction: column; gap: 16px; }}
+    .legend-section h2 {{ font-size: 1.2em; margin-bottom: 8px; border-bottom: 2px solid var(--accent); padding-bottom: 4px; }}
+    .legend-section ul {{ list-style: none; }}
+    .legend-section li {{ display: flex; align-items: center; margin-bottom: 6px; }}
+    .legend-section .color-box {{ width: 16px; height: 16px; border-radius: 4px; margin-right: 8px; border: 1px solid #ccc; }}
+    @media (max-width: 768px) {{
+      .visualization {{ height: 400px; }}
+      .card {{ padding: 12px; }}
+    }}
+  </style>
+</head>
+<body>
+  <div class='container'>
+    <h1>Estructura de {codigo_pdb}</h1>
+    <div class='card visualization'>
+      {cuerpo_contenido}
+    </div>
+    <div class='card legend'>
+      {leyenda_html}
+    </div>
+  </div>
+</body>
+</html>"""
+    return html
+  
 def abrir_en_navegador(html_file):
     ruta_absoluta = os.path.abspath(html_file)
     url = f'file://{ruta_absoluta}'
