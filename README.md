@@ -87,6 +87,26 @@ python main.py rmsd-pdb "PDB1" "PDB2" --ventana N
 python main.py rmsd-pdb "PDB1" "PDB2" --cadena X --ventana N
 ```
 
+### 5. Visualización de estructura terciaria de proteínas
+
+```bash
+# Visualización de una proteína
+python main.py mostrar-pdb "PDB"
+
+# Visualización de alineamiento estructural
+python main.py mostrar-alineamiento "PDB1" "PDB2"
+
+# OPCIONALES
+# Especificar cadena
+python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X
+
+# Cambiar tamaño de ventana (default: 5)
+python main.py mostrar-alineamiento "PDB1" "PDB2" --ventana N
+
+# Combinar opciones
+python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X --ventana N
+```
+
 ## Ejemplos de Uso
 
 ```bash
@@ -103,7 +123,13 @@ python main.py features P01308 --formato json
 python main.py buscar-pdb P01308
 
 # Analizar RMSD entre dos estructuras encontradas
-python main.py rmsd-pdb 1HHO 2HHB 
+python main.py rmsd-pdb 1HHO 2HHB
+
+# Visualizar una estructura PDB:
+python main.py mostrar-pdb 1HHO
+
+# Visualizar alineamiento entre dos estructuras
+python main.py mostrar-alineamiento 1HHO 2HHB
 ```
 
 ## Funcionalidades Detalladas
@@ -153,6 +179,7 @@ protein_cli/
     ├── prote_search.py    # Lógica principal de búsqueda de proteínas
     ├── pdb_search.py      # Lógica para búsqueda de PDB (con pandas)
     ├── features_search.py # Lógica para búsqueda y descarga de features
+    ├── pdb_viewer.py      # Visualización de archivos PDB.
     └── rmsd_analysis.py   # Análisis RMSD local entre estructuras PDB
 ```
 
@@ -166,4 +193,5 @@ pandas>=1.3.0         # Manipulación de datos
 matplotlib>=3.5.0     # Generación de gráficos
 numpy>=1.21.0         # Cálculos numéricos
 seaborn>=0.11.0       # Estilos de gráficos
+py3Dmol>=2.5.1        # Manipulación y visualización 3D de archivos PDB.
 ```
