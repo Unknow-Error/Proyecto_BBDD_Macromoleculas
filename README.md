@@ -153,6 +153,7 @@ protein_cli/
     ├── prote_search.py    # Lógica principal de búsqueda de proteínas
     ├── pdb_search.py      # Lógica para búsqueda de PDB (con pandas)
     ├── features_search.py # Lógica para búsqueda y descarga de features
+    ├── pdb_viewer.py      # Visualización de archivos PDB.
     └── rmsd_analysis.py   # Análisis RMSD local entre estructuras PDB
 ```
 
@@ -166,4 +167,5 @@ pandas>=1.3.0         # Manipulación de datos
 matplotlib>=3.5.0     # Generación de gráficos
 numpy>=1.21.0         # Cálculos numéricos
 seaborn>=0.11.0       # Estilos de gráficos
+py3Dmol>=2.5.1        # Manipulación y visualización 3D de archivos PDB.
 ```
