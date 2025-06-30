@@ -9,6 +9,7 @@ import seaborn as sns
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.Polypeptide import is_aa
 from Bio.PDB.Superimposer import Superimposer
+from Bio.PDB import PDBIO
 
 warnings.filterwarnings("ignore")
 
@@ -265,6 +266,7 @@ def analizar_rmsd_local(pdb1_id, pdb2_id, cadena_id=None, ventana=5):
 
         # Guardar gráfico
         nombre_archivo = f"rmsd_local_{pdb1_id}_{pdb2_id}_{cadena_id}.png"
+        carpeta='graficos'; os.makedirs(carpeta,exist_ok=True)
         ruta_completa = os.path.join("graficos", nombre_archivo)
         fig.savefig(ruta_completa, dpi=300, bbox_inches="tight")
         print(f"Gráfico guardado como: {ruta_completa}")
@@ -285,3 +287,65 @@ def analizar_rmsd_local(pdb1_id, pdb2_id, cadena_id=None, ventana=5):
     except Exception as e:
         print(f"Error: {e}")
         return None, None, None
+
+def guardar_estructura_alineada(pdb1_id, pdb2_id, cadena_id=None, ventana=5):
+    """
+    Descarga dos estructuras PDB, alinea la segunda sobre la primera globalmente (basado en átomos CA),
+    y guarda la segunda estructura ya alineada en formato .pdb.
+
+    Parámetros:
+        pdb1_id (String): ID del primer PDB (referencia)
+        pdb2_id (String): ID del segundo PDB (se alineará sobre el primero)
+        cadena_id (String, opcional): ID de la cadena a usar para la alineación. Si no se especifica, se toma la primera común.
+        ventana (int): tamaño de ventana para cálculo de RMSD local (usado para verificar residuos compatibles)
+
+    Retorna:
+        String: ruta del archivo PDB alineado guardado.
+    """
+    try:
+        # Descargar archivos
+        archivo1 = descargar_pdb(pdb1_id)
+        archivo2 = descargar_pdb(pdb2_id)
+
+        # Cargar estructuras
+        estructura1 = cargar_estructura(archivo1)
+        estructura2 = cargar_estructura(archivo2)
+
+        # Obtener cadenas comunes
+        cadenas_comunes = obtener_cadenas_comunes(estructura1, estructura2)
+        if cadena_id is None:
+            cadena_id = cadenas_comunes[0]
+            print(f"Usando cadena {cadena_id} (primera disponible)")
+        elif cadena_id not in cadenas_comunes:
+            raise Exception(
+                f"Cadena {cadena_id} no encontrada. Cadenas disponibles: {cadenas_comunes}"
+            )
+
+        # Extraer residuos CA (se usa dentro de calcular_rmsd_local)
+        print("Realizando alineamiento global...")
+        posiciones, rmsd_local = calcular_rmsd_local(
+            estructura1, estructura2, cadena_id, ventana
+        )
+
+        # Guardar estructura alineada (estructura2 fue modificada en el proceso)
+        
+        carpeta = 'estructuras_alineadas'
+        os.makedirs(carpeta, exist_ok=True)
+        nombre_archivo = f"alineado_{pdb2_id}_a_{pdb1_id}_cadena_{cadena_id}.pdb"
+        ruta_completa = os.path.join(carpeta, nombre_archivo)
+
+        io = PDBIO()
+        io.set_structure(estructura2)
+        io.save(ruta_completa)
+
+        print(f"Estructura alineada guardada como: {ruta_completa}")
+
+        # Limpiar archivos temporales
+        os.unlink(archivo1)
+        os.unlink(archivo2)
+
+        return ruta_completa
+
+    except Exception as e:
+        print(f"Error al alinear y guardar estructura: {e}")
+        return None

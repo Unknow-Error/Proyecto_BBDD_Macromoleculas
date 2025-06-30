@@ -2,13 +2,15 @@ import webbrowser
 import py3Dmol
 import random
 import re
-from matplotlib.colors import CSS4_COLORS
 import requests
 import pandas as pd
-from io import StringIO
 import time
 import os
 import shutil
+from utils import rmsd_analysis as rmsd
+
+from matplotlib.colors import CSS4_COLORS
+from io import StringIO
 
 URL_Uniprot = "https://rest.uniprot.org/uniprotkb/search"
 
@@ -75,19 +77,32 @@ class PDB_Viewer:
     Clase que genera una instancia de un objeto que contiene información de las Features (Dominio y Rangos) de una proteína según la base Uniprot pasada por su código pdb.
     Tiene métodos para gráficar a la proteína y sus features coloreandolos de forma particular.
   """
-  def __init__(self, codigo_pdb, dominios=None, regiones=None, colores=None):
+  def __init__(self, codigo_pdb, dominios=None, regiones=None):
     self.codigo_pdb = codigo_pdb
     self.features = None #DataFrame con features
     self.dominios = dominios #Diccionario con dominios
     self.regiones = regiones #Diccionario con regiones
-    self.colores = colores #Por si el usuario quiere "pintar" manualmente los dominios o regiones
 
     # Ejecución automática una vez inicializada la clase.
-    self.busqueda_features_uniprot(self.codigo_pdb)
-    if self.features is not None and not self.features.empty:
+    # Intentar buscar features, y validar PDB
+    try:
+      self.busqueda_features_uniprot(codigo_pdb)
+    except Exception as e:
+      raise ValueError(f"PDB inválido o error de conexión: {codigo_pdb}") from e
+    
+    # Verificar que se obtuvieron features
+    if self.features is None or self.features.empty:
+      raise ValueError(f"No se encontraron datos para el PDB: {codigo_pdb}")
+        
+    # Obtener dominios y regiones, con mensajes si no existen
+    try:
       self.obtener_dominios(self.features.iloc[0]['Domain [FT]'])
+    except Exception:
+      print("Advertencia: No se encontraron anotaciones de dominios para esta proteína.")
+    try:
       self.obtener_regiones(self.features.iloc[0]['Region'])
-
+    except Exception:
+      print("Advertencia: No se encontraron anotaciones de regiones para esta proteína.")
 
   def busqueda_features_uniprot(self, pdb):
     """
@@ -146,47 +161,138 @@ class PDB_Viewer:
   def random_color(self):
     return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
-  def mostrar_pdb_domains_regiones(self):
-    # Genera la vista
+  def pintar_feature(self, view3Dmol, color, inicio, fin, nota):
+    # Pinta una region especifica especificada y genera una leyenda con la misma.
+    if(color == None):
+      color = self.random_color()
+    
+    residuo = list(range(inicio, fin + 1))
+    view3Dmol.addStyle({'resi': residuo}, {'cartoon': {'color': color}})
+    colorNombre = self.nombre_color_masCercano(color)
+    leyenda = (nota, inicio, fin, color, colorNombre)
+    
+    return leyenda
+  
+  def mostrar_pdb_desde_id(self, cadena_id=None):
     view = py3Dmol.view(query='pdb:' + self.codigo_pdb)
-    view.setStyle({'cartoon': {'color': 'lightgrey'}})
 
-    leyenda_dominios, leyenda_regiones = [], []
-    # Dominios
-    if self.dominios:
-      for dominio in self.dominios:
-        color = self.random_color()
-        residuo = list(range(dominio['inicio'], dominio['final']+1))
-        view.addStyle({'resi': residuo}, {'cartoon': {'color': color}})
-        colorNombre = self.nombre_color_masCercano(color)
-        leyenda_dominios.append((dominio['note'], dominio['inicio'], dominio['final'], color, colorNombre))
-        
-    # Regiones
-    if self.regiones:
-      for region in self.regiones:
-        color = self.random_color()
-        residuo = list(range(region['inicio'], region['final']+1))
-        view.addStyle({'resi': residuo}, {'cartoon': {'color': color}})
-        colorNombre = self.nombre_color_masCercano(color)
-        leyenda_regiones.append((region['note'], region['inicio'], region['final'], color, colorNombre))
+    if cadena_id:
+        view.setStyle({'chain': cadena_id}, {'cartoon': {'color': 'spectrum'}})
+    else:
+        view.setStyle({'cartoon': {'color': 'spectrum'}})
 
     view.zoomTo()
     html = view._make_html()
     match = re.search(r'<body>(.*?)</body>', html, flags=re.DOTALL)
     cuerpo = match.group(1) if match else html
 
+    if cadena_id:
+      titulo = f"Estructura Simple de {self.codigo_pdb} - Cadena {cadena_id}"
+    else:
+      titulo = f"Estructura Simple de {self.codigo_pdb}"
+    
     html_completo = self.generar_html_completo(
-      self.codigo_pdb, cuerpo, leyenda_dominios, leyenda_regiones
+      titulo, cuerpo, None, None, None
     )
     
     # Guardar y abrir
-    html_nombre = f"{self.codigo_pdb}_estructura_pdb.html"
-    with open(html_nombre, 'w', encoding='utf-8') as f:
-      f.write(html_completo)
-    abrir_en_navegador(html_nombre)
-    print(f"{html_nombre} guardado y abierto exitosamente.")
+    html_nombre = f"{titulo}-{cadena_id}-pdb.html"
+    carpeta='graficos'; os.makedirs(carpeta,exist_ok=True)
+    ruta_completa=os.path.join(carpeta,html_nombre)
+    with open(ruta_completa,'w',encoding='utf-8') as f: f.write(html_completo)
+    abrir_en_navegador(ruta_completa)
+    print(f"{html_nombre} guardado en '{ruta_completa}' y abierto exitosamente.")
+      
+  def mostrar_pdb_domains_regiones(self, feature=None):
+    # Genera la vista
+    view = py3Dmol.view(query='pdb:' + self.codigo_pdb)
+    view.setStyle({'cartoon': {'color': 'lightgrey'}})
+
+    leyenda_dominios, leyenda_regiones, leyenda_feature_personal = [], [], []
+    # Dominios
+    if self.dominios:
+      for dominio in self.dominios:
+        leyenda_dominios.append(self.pintar_feature(
+          view,
+          None,
+          dominio['inicio'], 
+          dominio['final'],
+          dominio['note'])
+        )
+        
+    # Regiones
+    if self.regiones:
+      for region in self.regiones:
+        leyenda_regiones.append(self.pintar_feature(
+          view,
+          None, 
+          region['inicio'],
+          region['final'],
+          region['note'])
+        )
+        
+    if feature:
+      color, inicio, fin, nombre = feature
+      leyenda_feature_personal.append(self.pintar_feature(
+        view,
+        color,
+        inicio,
+        fin,
+        nombre)
+      )
+
+    view.zoomTo()
+    html = view._make_html()
+    match = re.search(r'<body>(.*?)</body>', html, flags=re.DOTALL)
+    cuerpo = match.group(1) if match else html
+
+    titulo = f"Estructura Con Features de {self.codigo_pdb}"
+    
+    html_completo = self.generar_html_completo(
+      titulo, cuerpo, leyenda_dominios, leyenda_regiones, leyenda_feature_personal
+    )
+    
+    # Guardar y abrir
+    html_nombre = f"{titulo}_pdb.html"
+    carpeta='graficos'; os.makedirs(carpeta,exist_ok=True)
+    ruta_completa=os.path.join(carpeta,html_nombre)
+    with open(ruta_completa,'w',encoding='utf-8') as f: f.write(html_completo)
+    abrir_en_navegador(ruta_completa)
+    print(f"{html_nombre} guardado en '{ruta_completa}' y abierto exitosamente.")
   
-  def generar_html_completo(self, codigo_pdb, cuerpo_contenido, leyenda_dominios, leyenda_regiones):
+  def mostrar_alineamiento_pdb(self, otro_codigo_pdb,  cadena_id=None, ventana=5):
+    # Generar el PDB de alineamiento
+    
+    ruta_alineamiento = rmsd.guardar_estructura_alineada(self.codigo_pdb, otro_codigo_pdb, cadena_id, ventana)
+    
+    with open(ruta_alineamiento, 'r') as f:
+        ruta_alineamiento = f.read()
+        
+    # Genera la vista
+    view = py3Dmol.view(width=800, height=600)
+    view.addModel(ruta_alineamiento, 'pdb')
+    view.setStyle({'cartoon': {'color': 'spectrum'}})
+    view.zoomTo()
+
+    html = view._make_html()
+    match = re.search(r'<body>(.*?)</body>', html, flags=re.DOTALL)
+    cuerpo = match.group(1) if match else html
+    
+    nombre_alineamiento = f"Alineamiento {self.codigo_pdb} - {otro_codigo_pdb} - Cadena: {cadena_id} - Ventana: {ventana}"
+
+    html_completo = self.generar_html_completo(
+      nombre_alineamiento, cuerpo, None, None, None
+    )
+    
+    # Guardar y abrir
+    html_nombre = f"{nombre_alineamiento}_pdb.html"
+    carpeta='graficos'; os.makedirs(carpeta,exist_ok=True)
+    ruta_completa=os.path.join(carpeta,html_nombre)
+    with open(ruta_completa,'w',encoding='utf-8') as f: f.write(html_completo)
+    abrir_en_navegador(ruta_completa)
+    print(f"{html_nombre} guardado en '{ruta_completa}' y abierto exitosamente.")
+  
+  def generar_html_completo(self, titulo_tipo, cuerpo_contenido, leyenda_dominios, leyenda_regiones, leyenda_otros):
     """
     Genera y retorna el HTML completo de la página.
     """
@@ -200,8 +306,20 @@ class PDB_Viewer:
         html += '</ul></section>'
         return html
 
-    leyenda_html = construir_seccion('Dominios', leyenda_dominios)
-    leyenda_html += construir_seccion('Regiones', leyenda_regiones)
+    leyenda_html = "Sin Leyenda"
+    try:
+      leyenda_html = construir_seccion('Dominios', leyenda_dominios)
+    except Exception as e:
+      print(f"No hay dominios: {e}")
+    try:
+      leyenda_html += construir_seccion('Regiones', leyenda_regiones)
+    except Exception as e:
+      print(f"No hay regiones: {e}")
+    try:
+      leyenda_html += construir_seccion('Otros', leyenda_otros)
+    except Exception as e:
+      print(f"No hay regiones: {e}")
+    
 
     # Template completo con estilo más sofisticado
     html = f"""<!DOCTYPE html>
@@ -209,7 +327,7 @@ class PDB_Viewer:
 <head>
   <meta charset='utf-8'/>
   <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-  <title>Estructura de {codigo_pdb}</title>
+  <title>{titulo_tipo}</title>
   <style>
     :root {{
       --bg-color: #f5f5f5;
@@ -238,7 +356,7 @@ class PDB_Viewer:
 </head>
 <body>
   <div class='container'>
-    <h1>Estructura de {codigo_pdb}</h1>
+    <h1>{titulo_tipo}</h1>
     <div class='card visualization'>
       {cuerpo_contenido}
     </div>
@@ -251,26 +369,26 @@ class PDB_Viewer:
     return html
   
 def abrir_en_navegador(html_file):
-    ruta_absoluta = os.path.abspath(html_file)
-    url = f'file://{ruta_absoluta}'
+  ruta_absoluta = os.path.abspath(html_file)
+  url = f'file://{ruta_absoluta}'
 
-    # Detectar navegadores disponibles
-    navegadores_preferidos = ['vivaldi', 'firefox', 'brave', 'chrome', 'google-chrome']
+  # Detectar navegadores disponibles
+  navegadores_preferidos = ['vivaldi', 'firefox', 'brave', 'chrome', 'google-chrome']
 
-    navegador_disponible = None
-    for navegador in navegadores_preferidos:
-        path = shutil.which(navegador)
-        if path:
-            navegador_disponible = path
-            break
+  navegador_disponible = None
+  for navegador in navegadores_preferidos:
+    path = shutil.which(navegador)
+    if path:
+      navegador_disponible = path
+      break
 
-    if navegador_disponible:
-        try:
-            webbrowser.get(f'"{navegador_disponible}" %s').open_new_tab(url)
-            print(f"Abriendo con: {navegador_disponible}")
-        except webbrowser.Error:
-            print("Error al intentar abrir con navegador específico. Usando navegador por defecto.")
-            webbrowser.open_new_tab(url)
-    else:
-        print("No se detectó Chrome o Firefox. Abriendo con navegador por defecto.")
-        webbrowser.open_new_tab(url)
+  if navegador_disponible:
+    try:
+      webbrowser.get(f'"{navegador_disponible}" %s').open_new_tab(url)
+      print(f"Abriendo con: {navegador_disponible}")
+    except webbrowser.Error:
+      print("Error al intentar abrir con navegador específico. Usando navegador por defecto.")
+      webbrowser.open_new_tab(url)
+  else:
+    print("No se detectó Chrome, Vivaldi, Brave o Firefox. Abriendo con navegador por defecto.")
+    webbrowser.open_new_tab(url)
