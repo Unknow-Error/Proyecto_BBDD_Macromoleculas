@@ -87,6 +87,26 @@ python main.py rmsd-pdb "PDB1" "PDB2" --ventana N
 python main.py rmsd-pdb "PDB1" "PDB2" --cadena X --ventana N
 ```
 
+### 5. Visualización de estructura terciaria de proteínas
+
+```bash
+# Visualización de una proteína
+python main.py mostrar-pdb "PDB"
+
+# Visualización de alineamiento estructural
+python main.py mostrar-alineamiento "PDB1" "PDB2"
+
+# OPCIONALES
+# Especificar cadena
+python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X
+
+# Cambiar tamaño de ventana (default: 5)
+python main.py mostrar-alineamiento "PDB1" "PDB2" --ventana N
+
+# Combinar opciones
+python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X --ventana N
+```
+
 ## Ejemplos de Uso
 
 ```bash
