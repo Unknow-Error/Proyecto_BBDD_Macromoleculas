@@ -123,7 +123,13 @@ python main.py features P01308 --formato json
 python main.py buscar-pdb P01308
 
 # Analizar RMSD entre dos estructuras encontradas
-python main.py rmsd-pdb 1HHO 2HHB 
+python main.py rmsd-pdb 1HHO 2HHB
+
+# Visualizar una estructura PDB:
+python main.py mostrar-pdb 1HHO
+
+# Visualizar alineamiento entre dos estructuras
+python main.py mostrar-alineamiento 1HHO 2HHB
 ```
 
 ## Funcionalidades Detalladas
