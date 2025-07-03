@@ -22,7 +22,7 @@ def es_id_uniprot(texto):
 # Entrada = texto
 # Salida = booleano
 def es_id_ncbi(texto):
-    return bool(re.fullmatch(r"^[A-Z]{1,3}_?\d{5,9}(\.\d+)?$", texto))
+    return bool(re.fullmatch(r"^(NP|XP|YP|WP|ZP|AP)_\d{6,9}(\.\d+)?$", texto))
 
 
 # Formatea los resultados de UniProt en una tabla usando pandas

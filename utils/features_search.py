@@ -87,4 +87,3 @@ def descargar_features(accession, formato):
         print(f"  - {archivo}")
     
     return None  # No es necesario devolver texto si ya imprime todo
-
