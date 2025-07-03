@@ -13,18 +13,41 @@ Consiste en una aplicación de consola (terminal de comandos) que permite buscar
 
 ## Instalación
 
+### Requisitos Previos
+
+- Python 3.8 o superior
+- Conexión a internet (para descargar estructuras PDB y acceder a APIs)
+- Navegador web (para visualización 3D)
+
+### Instalación Paso a Paso
+
 ```bash
-# Clonar el repositorio
+# 1. Clonar el repositorio
 git clone <https://github.com/Javyne/Proyecto_BBDD_Macromoleculas.git>
 cd protein_cli
 
-# Crear entorno virtual (recomendado)
+# 2. Crear entorno virtual (recomendado)
 python -m venv venv
-venv\Scripts\activate  # En Windows
-# source venv/bin/activate  # En Linux/Mac
 
-# Instalar dependencias
+# 3. Activar entorno virtual
+# En Windows:
+venv\Scripts\activate
+# En Linux/Mac:
+# source venv/bin/activate
+
+# 4. Instalar dependencias
 pip install -r requirements.txt
+
+# 5. Verificar instalación
+python main.py --help
+```
+
+### Instalación Rápida (Sin Entorno Virtual)
+
+```bash
+# Solo para desarrollo/testing
+pip install -r requirements.txt
+python main.py --help
 ```
 
 ## Uso
@@ -77,14 +100,20 @@ python main.py features P01308 -f xml
 python main.py rmsd-pdb "PDB1" "PDB2"
 
 # OPCIONALES
-# Especificar cadena
-python main.py rmsd-pdb "PDB1" "PDB2" --cadena X
+# Especificar cadena común para ambos PDBs
+python main.py rmsd-pdb "PDB1" "PDB2" --cadena1 X
+
+# Especificar cadenas independientes para cada PDB
+python main.py rmsd-pdb "PDB1" "PDB2" --cadena1 X --cadena2 Y
 
 # Cambiar tamaño de ventana (default: 5)
 python main.py rmsd-pdb "PDB1" "PDB2" --ventana N
 
 # Combinar opciones
-python main.py rmsd-pdb "PDB1" "PDB2" --cadena X --ventana N
+python main.py rmsd-pdb "PDB1" "PDB2" --cadena1 X --ventana N
+python main.py rmsd-pdb "PDB1" "PDB2" --cadena1 X --cadena2 Y --ventana N
+
+# NOTA: No se pueden usar --cadena y --cadenas simultáneamente
 ```
 
 ### 5. Visualización de estructura terciaria de proteínas
@@ -122,6 +151,8 @@ python main.py mostrar-alineamiento "PDB1" "PDB2" --cadena X --colores "col1" "c
 
 ## Ejemplos de Uso
 
+### Búsqueda y Descarga de Datos
+
 ```bash
 # Buscar Proteina por Accession
 python main.py buscar P01308
@@ -134,10 +165,92 @@ python main.py features P01308 --formato json
 
 # Buscar estructuras PDB
 python main.py buscar-pdb P01308
+```
 
-# Analizar RMSD entre dos estructuras encontradas
-python main.py rmsd-pdb 1HHO 2HHB
+### Análisis RMSD
 
+#### 1. Misma Proteína, Diferentes Estados Conformacionales
+
+```bash
+# Hemoglobina en diferentes estados (misma molécula, diferentes conformaciones)
+python main.py rmsd-pdb 1HHO 2HHB --cadena1 A
+# Resultado: RMSD bajo (< 2 Å) - estructuras muy similares
+# UniProt IDs compartidos: P01922 (Hemoglobina alfa humana)
+```
+
+#### 2. Misma Proteína, Diferentes Cadenas
+
+```bash
+# Hemoglobina - comparar cadenas A y B de la misma estructura
+python main.py rmsd-pdb 1HHO 1HHO --cadena1 A --cadena2 B
+# Resultado: ADVERTENCIA + RMSD bajo entre cadenas homólogas
+```
+
+#### 3. Proteínas Diferentes
+
+```bash
+# Hemoglobina vs Albúmina (moléculas completamente diferentes)
+python main.py rmsd-pdb 1A00 1AO6
+# Resultado: ADVERTENCIA - proteínas diferentes
+# UniProt IDs: P01966 (Hemoglobina) vs P02768 (Albúmina)
+# El análisis continúa solo si el usuario confirma
+```
+
+#### 4. Proteínas Relacionadas - Familia de Proteínas
+
+```bash
+# Diferentes isoformas de hemoglobina
+python main.py rmsd-pdb 1HHO 1A00 --cadena1 A
+# Resultado: RMSD moderado - proteínas relacionadas pero no idénticas
+```
+
+#### 5. Análisis con Diferentes Tamaños de Ventana
+
+```bash
+# Ventana pequeña (3 residuos) - más sensible a cambios locales
+python main.py rmsd-pdb 1HHO 2HHB --ventana 3
+
+# Ventana grande (10 residuos) - más suavizado
+python main.py rmsd-pdb 1HHO 2HHB --ventana 10
+```
+
+#### 6. Cadenas Independientes
+
+```bash
+# Comparar cadenas A y B de la misma estructura
+python main.py rmsd-pdb 1HHO 1HHO --cadena1 A --cadena2 B
+
+# Comparar cadenas específicas de diferentes estructuras
+python main.py rmsd-pdb 1HHO 2HHB --cadena1 A --cadena2 B
+
+# Comparar cadenas diferentes de proteínas relacionadas
+python main.py rmsd-pdb 1HHO 1A00 --cadena1 A --cadena2 B
+
+```
+
+### Interpretación de Resultados RMSD
+
+#### RMSD Bajo (< 2 Å)
+
+- Estructuras muy similares
+- Misma proteína en diferentes condiciones
+- Diferentes conformaciones de la misma molécula
+
+#### RMSD Moderado (2-5 Å)
+
+- Proteínas relacionadas (familia de proteínas)
+- Diferentes isoformas
+- Mutaciones puntuales
+
+#### RMSD Alto (> 5 Å)
+
+- Proteínas diferentes
+- Estructuras no relacionadas
+- Comparación biológicamente sin sentido
+
+### Visualización de Estructuras
+
+```bash
 # Visualizar una estructura PDB (simple sin features):
 python main.py mostrar_PDB_simple 1HHO
 
@@ -148,26 +261,57 @@ python main.py mostrar_PDB_features 1HHO
 python main.py mostrar-alineamiento 1HHO 2HHB --cadena B --colores blue green --ventana 10
 ```
 
+## Flujo de Trabajo Típico
+
+### **Análisis Completo de una Proteína**
+
+```bash
+# 1. Buscar información de la proteína
+python main.py buscar P01308
+
+# 2. Descargar características detalladas
+python main.py features P01308 --formato gff
+
+# 3. Encontrar estructuras PDB disponibles
+python main.py buscar-pdb P01308
+
+# 4. Analizar RMSD entre dos estructuras seleccionadas
+python main.py rmsd-pdb 1HHO 2HHB --cadena1 A --ventana 5
+
+# 5. Visualizar las estructuras
+python main.py mostrar-alineamiento 1HHO 2HHB --cadena1 A
+```
+
 ## Funcionalidades Detalladas
 
 ### Análisis RMSD Local
 
-El comando `rmsd-local` realiza el cálculo de RMSD entre dos PDB:
+El comando `rmsd-pdb` realiza el cálculo de RMSD entre dos PDB:
 
-1. **Superposición Global**: Alinea las estructuras completas usando átomos CA de aminoácidos estándar
-2. **Ventana Deslizante**: Calcula RMSD en ventanas de tamaño configurable (default: 5 residuos)
-3. **Fórmula Estándar**: RMSD = √(Σ(coord₁ - coord₂)² / n)
-4. **Gráficos RMSD**: Genera gráficos con estadísticas completas
-5. **Visualización de estructura**: Genera una instancia y un archivo HTML/CSS para mostrar la estructura 3D de las porteínas interactiva.
+1. **Verificación UniProt**: Verifica automáticamente si las estructuras pertenecen a la misma proteína
+2. **Superposición Global**: Alinea las estructuras completas usando átomos CA de aminoácidos estándar
+3. **Ventana Deslizante**: Calcula RMSD en ventanas de tamaño configurable (default: 5 residuos)
+4. **Fórmula Estándar**: RMSD = √(Σ(coord₁ - coord₂)² / n)
+5. **Gráficos RMSD**: Genera gráficos con estadísticas completas
+6. **Visualización de estructura**: Genera una instancia y un archivo HTML/CSS para mostrar la estructura 3D de las proteínas interactiva.
 
 **Características:**
 
+<<<<<<< HEAD
 - Maneja estructuras de diferentes longitudes
 - Filtra solo aminoácidos estándar
 - Gráficos guardados automáticamente en carpeta `graficos/`
 - Soporte para diferentes cadenas y tamaños de ventana
 - Soporte para la visualización de archivos PDB y de estructuras alineadas.
 - Gráficos de estructuras 3D automáticamente guarados en carpeta `graficos/`
+=======
+- **Verificación automática de compatibilidad**: Detecta si las estructuras pertenecen a la misma proteína
+- **Manejo de estructuras de diferentes longitudes**: Corta automáticamente a la longitud mínima
+- **Filtra solo aminoácidos estándar**: Excluye residuos no estándar del análisis
+- **Gráficos guardados automáticamente**: En carpeta `graficos/` con nombres descriptivos
+- **Soporte para diferentes cadenas y tamaños de ventana**: Flexibilidad total en el análisis
+- **Advertencias inteligentes**: Informa al usuario sobre comparaciones biológicamente cuestionables
+>>>>>>> refs/remotes/origin/main
 
 ### Búsqueda de PDB con Pandas
 
@@ -182,6 +326,31 @@ Soporte para múltiples formatos de salida:
 - **XML**: Formato extensible
 - **GFF**: Formato genómico
 
+### Búsqueda de Proteínas
+
+El comando `buscar` permite buscar proteínas por diferentes criterios:
+
+- **Accession/ID**: Búsqueda directa por identificador UniProt o NCBI
+- **Texto descriptivo**: Búsqueda por palabras clave o descripción
+- **Reconocimiento automático**: Detecta el tipo de identificador automáticamente
+
+### Visualización de Estructuras PDB
+
+#### Visualización Simple
+
+- Comando: `mostrar-PDB-simple`
+- Funcionalidad: Visualización 3D básica de estructuras PDB
+
+#### Visualización con Features
+
+- Comando: `mostrar-PDB-features`
+- Funcionalidad: Visualización con características biológicas destacadas
+
+#### Alineamiento Estructural
+
+- Comando: `mostrar-alineamiento`
+- Funcionalidad: Comparación visual de dos estructuras PDB
+
 ## Estructura del Proyecto
 
 ```bash
@@ -192,14 +361,15 @@ protein_cli/
 ├── data/                  # Módulo para APIs
 │   ├── __init__.py
 │   ├── fetch_ncbi.py      # Funciones para NCBI
+│   └── fetch_pdb.py       # Funciones para PDB
 │   └── fetch_uniprot.py   # Funciones para UniProt
 └── utils/                 # Utilidades
     ├── __init__.py
     ├── prote_search.py    # Lógica principal de búsqueda de proteínas
     ├── pdb_search.py      # Lógica para búsqueda de PDB (con pandas)
     ├── features_search.py # Lógica para búsqueda y descarga de features
-    ├── pdb_viewer.py      # Visualización de archivos PDB.
-    └── rmsd_analysis.py   # Análisis RMSD local entre estructuras PDB
+    ├── pdb_viewer.py      # Visualización de archivos PDB
+    └── rmsd_analysis.py   # Análisis RMSD local con verificación UniProt
 ```
 
 ## Dependencias
@@ -214,3 +384,29 @@ numpy>=1.21.0         # Cálculos numéricos
 seaborn>=0.11.0       # Estilos de gráficos
 py3Dmol>=2.5.1        # Manipulación y visualización 3D de archivos PDB.
 ```
+
+## Licencia
+
+Este proyecto es parte del trabajo final de la asignatura BBDD de macromoléculas de la Universidad Nacional de Quilmes.
+
+### **Uso Académico**
+
+- Libre para uso educativo y de investigación
+- Citar el proyecto en publicaciones académicas
+- Respetar las licencias de las dependencias utilizadas
+
+### **Dependencias Externas**
+
+- **RCSB PDB**: Datos de estructuras proteicas
+- **UniProt**: Información de proteínas
+- **NCBI**: Datos de secuencias
+
+## Contacto
+
+- **Universidad**: Universidad Nacional de Quilmes
+- **Asignatura**: BBDD de Macromoléculas
+- **Año**: 2025
+
+---
+
+**Nota**: Este proyecto está diseñado para análisis académico y de investigación. Para uso comercial, consultar las licencias de las bases de datos externas utilizadas.

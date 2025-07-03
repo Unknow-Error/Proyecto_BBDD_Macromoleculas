@@ -149,3 +149,25 @@ def buscar_features_uniprot(accession, formato="json"):
         return f"Error de conexión: {str(error)}"
     except Exception as error:
         return f"Error inesperado: {str(error)}"
+
+
+# Busca los accession asociados a un PDB en UniProt
+# Entrada = PDB ID, cadena ID
+# Salida = lista de accessions
+def buscar_pdb_accessions(pdb_id: str, chain_id: str, timeout: int = 20) -> set[str]:
+
+    url = f"https://www.ebi.ac.uk/pdbe/api/mappings/uniprot/{pdb_id.lower()}"
+    try:
+        resp = requests.get(url, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:
+        print(f"Advertencia: no se pudo contactar con PDBe-SIFTS ({exc}).")
+        return set()
+
+    acceso = set()
+    for record in data.get(pdb_id.lower(), {}).get("UniProt", {}).values():
+        for seg in record.get("mappings", []):
+            if seg.get("chain_id").strip() == chain_id.strip():
+                acceso.add(record["identifier"])
+    return acceso
