@@ -4,8 +4,6 @@ import os
 from data.fetch_uniprot import buscar_features_uniprot
 from utils.pdb_search import es_accession_uniprot, map_ncbi_to_uni
 
-
-
 # Guarda features en un archivo
 # Entrada = contenido, accession, formato
 # Salida = archivo guardado o mensaje de error
