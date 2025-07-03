@@ -297,21 +297,12 @@ El comando `rmsd-pdb` realiza el cálculo de RMSD entre dos PDB:
 
 **Características:**
 
-<<<<<<< HEAD
-- Maneja estructuras de diferentes longitudes
-- Filtra solo aminoácidos estándar
-- Gráficos guardados automáticamente en carpeta `graficos/`
-- Soporte para diferentes cadenas y tamaños de ventana
-- Soporte para la visualización de archivos PDB y de estructuras alineadas.
-- Gráficos de estructuras 3D automáticamente guarados en carpeta `graficos/`
-=======
 - **Verificación automática de compatibilidad**: Detecta si las estructuras pertenecen a la misma proteína
 - **Manejo de estructuras de diferentes longitudes**: Corta automáticamente a la longitud mínima
 - **Filtra solo aminoácidos estándar**: Excluye residuos no estándar del análisis
 - **Gráficos guardados automáticamente**: En carpeta `graficos/` con nombres descriptivos
 - **Soporte para diferentes cadenas y tamaños de ventana**: Flexibilidad total en el análisis
 - **Advertencias inteligentes**: Informa al usuario sobre comparaciones biológicamente cuestionables
->>>>>>> refs/remotes/origin/main
 
 ### Búsqueda de PDB con Pandas
 
