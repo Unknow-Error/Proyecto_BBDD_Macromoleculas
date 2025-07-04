@@ -263,22 +263,25 @@ class PDB_Viewer:
   def mostrar_alineamiento_pdb(self, otro_codigo_pdb,  cadena_id=None, colores=None, ventana=50):
     # Generar el PDB de alineamiento
     
+    if cadena_id is None:
+      cadena_id = "A"
+    
     estructura_self = rmsd.cargar_estructura(rmsd.descargar_pdb(self.codigo_pdb))
     estructura_otro = rmsd.cargar_estructura(rmsd.descargar_pdb(otro_codigo_pdb))
     
     alineamiento = rmsd.alinear_estructuras(estructura_self, estructura_otro, cadena_id) 
-    grafico = rmsd.analizar_rmsd_local(self.codigo_pdb, otro_codigo_pdb, cadena_id, ventana)
-    ruta_grafico = grafico[0]
+    posiciones_rmsd, rmsd_local = rmsd.calcular_rmsd_local(estructura_self, estructura_otro, cadena_id, cadena_id, ventana)
+    ruta_grafico = rmsd.generar_y_guardar_grafico(posiciones_rmsd, rmsd_local, self.codigo_pdb, otro_codigo_pdb, cadena_id, cadena_id, ventana)
     
     estructura_self_str = rmsd.estructura_PDB_a_str(estructura_self, cadena_id)
     estructura_otro_str = rmsd.estructura_PDB_a_str(estructura_otro, cadena_id)
     
     # Genera la vista
-    color_ref, color_otro = colores
-    if color_ref is None:
-      color_ref = "blue"
-    if color_otro is None:
-      color_otro = "red"
+    if colores is None:
+        colores = ["blue", "red"]
+        
+    color_ref = colores[0]
+    color_otro = colores[1]
       
     view = py3Dmol.view(width=800, height=600)
     view.addModel(estructura_self_str, "pdb")
@@ -302,7 +305,8 @@ class PDB_Viewer:
     )
     
     # Guardar y abrir
-    html_nombre = f"{nombre_alineamiento}_pdb.html"
+    nombre_archivo =  f"Alineamiento {self.codigo_pdb} - {otro_codigo_pdb} - Cadena: {cadena_id}"
+    html_nombre = f"{nombre_archivo}_pdb.html"
     carpeta='graficos'; os.makedirs(carpeta,exist_ok=True)
     ruta_completa=os.path.join(carpeta,html_nombre)
     with open(ruta_completa,'w',encoding='utf-8') as f: f.write(html_completo)
