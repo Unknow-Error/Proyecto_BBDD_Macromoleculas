@@ -312,9 +312,11 @@ class PDB_Viewer:
     # Guardar y abrir
     nombre_archivo =  f"Alineamiento {self.codigo_pdb} - {otro_codigo_pdb} - Cadena: {cadena_id}"
     html_nombre = f"{nombre_archivo}_pdb.html"
-    carpeta='graficos'; os.makedirs(carpeta,exist_ok=True)
+    carpeta='graficos'
+    os.makedirs(carpeta,exist_ok=True)
     ruta_completa=os.path.join(carpeta,html_nombre)
-    with open(ruta_completa,'w',encoding='utf-8') as f: f.write(html_completo)
+    with open(ruta_completa,'w',encoding='utf-8') as f:
+      f.write(html_completo)
     abrir_en_navegador(ruta_completa)
     print(f"{html_nombre} guardado en '{ruta_completa}' y abierto exitosamente.")
   
