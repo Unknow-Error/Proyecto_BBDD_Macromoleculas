@@ -264,10 +264,15 @@ class PDB_Viewer:
     # Generar el PDB de alineamiento
     
     if cadena_id is None:
-      cadena_id = "A"
+      cadena_id = "A"  
     
     estructura_self = rmsd.cargar_estructura(rmsd.descargar_pdb(self.codigo_pdb))
     estructura_otro = rmsd.cargar_estructura(rmsd.descargar_pdb(otro_codigo_pdb))
+    
+    ca, verificarCadenaID_self = rmsd.conseguir_atomos_CA(estructura_self, cadena_id)
+    ca, verificarCadenaID_otro = rmsd.conseguir_atomos_CA(estructura_otro, cadena_id)
+    if (verificarCadenaID_self == 1 or  verificarCadenaID_otro == 1):
+      cadena_id = "A" #Se dio un cadena_id invalido o no existente
     
     alineamiento = rmsd.alinear_estructuras(estructura_self, estructura_otro, cadena_id) 
     posiciones_rmsd, rmsd_local = rmsd.calcular_rmsd_local(estructura_self, estructura_otro, cadena_id, cadena_id, ventana)
