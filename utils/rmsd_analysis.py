@@ -78,7 +78,7 @@ def cargar_estructura(archivo_pdb):
 # Encuentra las cadenas que están presentes en ambas estructuras
 # Entrada = dos objetos estructura de BioPython
 # Salida = lista de IDs de cadenas comunes
-def obtener_cadenas_comunes(estructura1, estructura2, cadena1_id, cadena2_id):
+def obtener_cadenas_comunes(estructura1, estructura2, cadena1_id=None, cadena2_id=None):
 
     if cadena1_id is None:
         cadenas1 = set([chain.id for chain in estructura1.get_chains()])
@@ -107,7 +107,9 @@ def extraer_coordenadas_ca(estructura1, cadena_id):
     try:
         cadena1 = estructura1[0][cadena_id]
     except Exception as e:
-        print(f"No existe cadena {cadena_id} en los PDBs. Se utilizará por defecto el valor de cadena A.")
+        print(
+            f"No existe cadena {cadena_id} en los PDBs. Se utilizará por defecto el valor de cadena A."
+        )
         cadena_id = "A"
         cadena1 = estructura1[0][cadena_id]
 
@@ -399,27 +401,20 @@ def analizar_rmsd_local(pdb1_id, pdb2_id, cadena1_id=None, cadena2_id=None, vent
 # Para alineamiento estructural gráfico => Con alineamiento global.
 # Extraer los C-alfa de la cadena X
 def conseguir_atomos_CA(estructura, cadenaID=None):
-    """Devuelve un diccionario {resid: atom} para los C-alfa de una cadena."""
     modelo = estructura[0]
-    advertencia = 0 #Para indicar si la cadena dada no existe
-    try:
-        cadena = modelo[cadenaID]
-    except Exception as e:
-        print(f"{e} : No existe {cadenaID} en los PDBs. Se usará por defecto cadena A.")
-        cadenaID = "A"
-        cadena = modelo[cadenaID]
-        advertencia = 1
-    return {residuo.id: residuo["CA"] for residuo in cadena if "CA" in residuo}, advertencia
+    cadena = modelo[cadenaID]
+
+    return {residuo.id: residuo["CA"] for residuo in cadena if "CA" in residuo}
 
 
 # Alinear estructuras usando Superimposer
 def alinear_estructuras(estructuraReferencia, estructuraOtra, cadenaID, tolerancia=3):
-    ca_ref, _ = conseguir_atomos_CA(estructuraReferencia, cadenaID)
-    ca_otro, _ = conseguir_atomos_CA(estructuraOtra, cadenaID)
+    ca_ref = conseguir_atomos_CA(estructuraReferencia, cadenaID)
+    ca_otro = conseguir_atomos_CA(estructuraOtra, cadenaID)
 
     # Encontrar residuos comunes -> Para alineamiento con proteinas de diferente tamaño
     residuos_comunes = set(ca_ref.keys()) & set(ca_otro.keys())
-
+    print(cadenaID, residuos_comunes)
     if len(residuos_comunes) < tolerancia:
         raise ValueError("Muy pocos residuos comunes para alinear.")
 
